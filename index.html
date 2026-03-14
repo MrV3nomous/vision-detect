@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>VisionDetect</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+<header class="app-header">
+VISION DETECT
+</header>
+
+<div class="layout">
+
+<!-- CONTROLS -->
+
+<aside class="controls">
+
+<h3 class="section-title">SYSTEM</h3>
+
+<input type="file" id="imageUpload">
+
+<button id="startCamera">Activate Camera</button>
+<button id="stopCamera">Stop Camera</button>
+
+<div class="slider">
+
+<label>Confidence</label>
+
+<input type="range" id="confidenceSlider" min="0" max="1" step="0.05" value="0.5">
+
+<span id="confidenceValue">0.5</span>
+
+</div>
+
+<button id="downloadBtn">Export Image</button>
+
+</aside>
+
+
+<!-- HERO AREA -->
+
+<main class="vision">
+
+<div class="vision-frame">
+
+<video id="video" autoplay muted playsinline></video>
+
+<canvas id="canvas"></canvas>
+
+<!-- HUD elements -->
+
+<div class="scan-grid"></div>
+
+<div class="scanner-line"></div>
+
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div id="lockIndicator"></div>
+
+</div>
+
+</main>
+
+
+<!-- ANALYSIS -->
+
+<aside class="analysis">
+
+<h3 class="section-title">DETECTED OBJECTS</h3>
+
+<ul id="objectList"></ul>
+
+<h3 class="section-title">OBJECT COUNT</h3>
+
+<ul id="objectSummary"></ul>
+
+</aside>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

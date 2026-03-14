@@ -1,0 +1,259 @@
+body{
+margin:0;
+background:#0b0e13;
+color:#e6edf3;
+font-family:'Inter',sans-serif;
+}
+
+/* HEADER */
+
+.app-header{
+padding:16px;
+text-align:center;
+letter-spacing:4px;
+font-weight:600;
+color:#d4af37;
+}
+
+/* MAIN LAYOUT */
+
+.layout{
+display:grid;
+grid-template-columns:220px 1fr 260px;
+gap:20px;
+padding:20px;
+height:calc(100vh - 60px);
+box-sizing:border-box;
+}
+
+/* SIDE PANELS */
+
+.controls,
+.analysis{
+background:#121722;
+padding:20px;
+border-radius:8px;
+overflow:auto;
+}
+
+.section-title{
+font-size:12px;
+letter-spacing:2px;
+color:#d4af37;
+margin-bottom:12px;
+}
+
+/* VISION AREA */
+
+.vision{
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+/* CAMERA FRAME */
+
+.vision-frame{
+position:relative;
+width:100%;
+max-width:900px;
+
+/* CRITICAL FIX */
+aspect-ratio:16/9;
+
+border:1px solid #222;
+overflow:hidden;
+background:#000;
+}
+
+/* VIDEO + CANVAS LAYER */
+
+video,
+canvas{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+video{
+z-index:1;
+}
+
+canvas{
+z-index:2;
+pointer-events:none;
+}
+
+/* HUD ELEMENT LAYER */
+
+.scan-grid,
+.scanner-line,
+.corner,
+#lockIndicator{
+position:absolute;
+z-index:3;
+pointer-events:none;
+}
+
+/* SCANNING GRID */
+
+.scan-grid{
+top:0;
+left:0;
+width:100%;
+height:100%;
+
+background-image:
+linear-gradient(rgba(212,175,55,0.08) 1px, transparent 1px),
+linear-gradient(90deg, rgba(212,175,55,0.08) 1px, transparent 1px);
+
+background-size:40px 40px;
+}
+
+/* SCANNER LINE */
+
+.scanner-line{
+width:100%;
+height:2px;
+background:#d4af37;
+animation:scan 4s linear infinite;
+}
+
+@keyframes scan{
+0%{top:0}
+100%{top:100%}
+}
+
+/* TARGETING CORNERS */
+
+.corner{
+width:25px;
+height:25px;
+border:2px solid #d4af37;
+}
+
+.tl{
+top:10px;
+left:10px;
+border-right:none;
+border-bottom:none;
+}
+
+.tr{
+top:10px;
+right:10px;
+border-left:none;
+border-bottom:none;
+}
+
+.bl{
+bottom:10px;
+left:10px;
+border-right:none;
+border-top:none;
+}
+
+.br{
+bottom:10px;
+right:10px;
+border-left:none;
+border-top:none;
+}
+
+/* LOCK INDICATOR */
+
+#lockIndicator{
+width:40px;
+height:40px;
+border:2px solid #d4af37;
+border-radius:50%;
+display:none;
+}
+
+/* DETECTION PULSE */
+
+.detect-pulse{
+animation:pulse 0.3s;
+}
+
+@keyframes pulse{
+0%{box-shadow:0 0 0px #d4af37}
+50%{box-shadow:0 0 25px #d4af37}
+100%{box-shadow:0 0 0px #d4af37}
+}
+
+/* CONTROLS */
+
+button,
+input[type="file"]{
+display:block;
+width:100%;
+margin-bottom:12px;
+background:none;
+border:1px solid #333;
+color:#e6edf3;
+padding:8px;
+cursor:pointer;
+}
+
+button:hover{
+border-color:#d4af37;
+}
+
+.slider input{
+width:100%;
+}
+
+/* LISTS */
+
+ul{
+list-style:none;
+padding:0;
+}
+
+li{
+padding:6px 0;
+border-bottom:1px solid #222;
+}
+
+/* TABLET */
+
+@media (max-width:1100px){
+
+.layout{
+grid-template-columns:1fr;
+height:auto;
+}
+
+.controls{order:2}
+.analysis{order:3}
+.vision{order:1}
+
+}
+
+/* MOBILE */
+
+@media (max-width:600px){
+
+.layout{
+padding:10px;
+gap:10px;
+}
+
+.controls,
+.analysis{
+padding:15px;
+}
+
+.app-header{
+font-size:14px;
+}
+
+.vision-frame{
+aspect-ratio:4/3;
+}
+
+}
