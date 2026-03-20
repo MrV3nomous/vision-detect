@@ -10,23 +10,23 @@
 
 ## 🚀 Core Highlights
 
-#### **Real-Time Object Detection**
-– Detects objects live from a webcam stream with bounding boxes and confidence scores.
+- **Real-Time Object Detection**
+  Detects objects live from a webcam stream with bounding boxes and confidence scores.
 
-#### **Flexible Image Input**
-– Supports image uploads for testing static scenes with the same detection accuracy.
+- **Flexible Image Input**
+  Supports image uploads for testing static scenes with the same detection accuracy.
 
-#### **Dynamic Confidence Adjustment**
-– Users can adjust the detection threshold for more precise outputs.
+- **Dynamic Confidence Adjustment**
+  Users can adjust the detection threshold for more precise outputs.
 
-#### **Annotated Output & Insights**
-– Each detection is visually marked, and a live summary of object counts is displayed.
+- **Annotated Output & Insights**
+  Each detection is visually marked, and a live summary of object counts is displayed.
 
-#### **Responsive & Mobile-Optimized**
-– Works seamlessly across phones, tablets, and desktop browsers.
+- **Responsive & Mobile-Optimized**
+  Works seamlessly across phones, tablets, and desktop browsers.
 
-#### **Instant Export**
-– Save annotated images directly from the interface for reporting or sharing.
+- **Instant Export**
+  Save annotated images directly from the interface for reporting or sharing.
 
 
 
@@ -47,26 +47,26 @@
 
 ## 🎯 How to Run
 
-#### **1. Clone the repository:**
+**1. Clone the repository:**
 
 ```bash
 git clone https://github.com/MrV3nomous/vision-detect.git
 cd vision-detect
 ```
 
-#### **2. Launch a local server (Python example):**
+**2. Launch a local server (Python example):**
 
 ```bash
 python3 -m http.server
 ```
 
-#### **3. Open in your browser:**
+**3. Open in your browser:**
 
 ```bash
 http://localhost:8000
 ```
 
-#### **4. Upload an image or activate your camera to explore live detection.**
+**4. Upload an image or activate your camera to explore live detection.**
 
 
 
