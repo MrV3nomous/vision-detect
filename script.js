@@ -1,5 +1,5 @@
 let model = null;
-let appState = "loading";
+let appState = "loading"; 
 let stream = null;
 let usingCamera = false;
 let facingMode = "environment";
@@ -16,6 +16,7 @@ const reviewVideo = document.getElementById("reviewVideo");
 const reviewImage = document.getElementById("reviewImage");
 
 const startBtn = document.getElementById("startCamera");
+const stopBtn = document.getElementById("stopCamera");
 const switchBtn = document.getElementById("switchCamera");
 const shutterWrapper = document.getElementById("shutterWrapper");
 const shutterBtn = document.getElementById("shutterBtn");
@@ -39,7 +40,7 @@ let isRecording = false;
 let holdTimeout;
 let mediaRecorder;
 let recordedChunks = [];
-let reviewType = null;
+let reviewType = null; 
 let reviewDataUrl = null;
 
 function updateTrackingMemory(currentDetections) {
@@ -71,6 +72,7 @@ function setUIState(newState) {
     startBtn.classList.add("hidden"); switchBtn.classList.add("hidden");
     shutterWrapper.classList.add("hidden"); uploadWrapper.classList.add("hidden");
     discardBtn.classList.add("hidden"); saveBtn.classList.add("hidden");
+    stopBtn.classList.add("hidden");
     reviewVideo.classList.add("hidden"); reviewImage.classList.add("hidden");
     canvas.style.opacity = "1";
 
@@ -86,13 +88,16 @@ function setUIState(newState) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             break;
         case "streaming":
-            shutterWrapper.classList.remove("hidden"); switchBtn.classList.remove("hidden");
+            shutterWrapper.classList.remove("hidden"); 
+            switchBtn.classList.remove("hidden");
+            uploadWrapper.classList.remove("hidden");
+            stopBtn.classList.remove("hidden");
             statusIndicator.textContent = "LIVE"; statusIndicator.className = "status-tag streaming";
             break;
         case "review":
             discardBtn.classList.remove("hidden"); saveBtn.classList.remove("hidden");
             statusIndicator.textContent = "REVIEW"; statusIndicator.className = "status-tag ready";
-            canvas.style.opacity = "0";
+            canvas.style.opacity = "0"; 
             
             if (reviewType === 'video') {
                 reviewVideo.classList.remove("hidden");
@@ -133,7 +138,7 @@ function getRenderScale(source) {
 }
 
 function executeRenderTick() {
-    if (appState !== "streaming" && appState !== "ready") return;
+    if (appState !== "streaming" && appState !== "ready") return; 
 
     const displayRect = visionFrame.getBoundingClientRect();
     canvas.width = displayRect.width * window.devicePixelRatio;
@@ -226,7 +231,7 @@ async function analyticalProcessLoop() {
 shutterWrapper.addEventListener('pointerdown', (e) => {
     if(appState !== 'streaming') return;
     shutterWrapper.style.transform = "scale(0.92)";
-    holdTimeout = setTimeout(() => { startVideoRecording(); }, 400);
+    holdTimeout = setTimeout(() => { startVideoRecording(); }, 400); 
 });
 
 const endShutterInteraction = () => {
@@ -254,7 +259,6 @@ shutterWrapper.addEventListener('pointercancel', () => {
 function takePhotoSnapshot() {
     reviewDataUrl = canvas.toDataURL("image/png");
     reviewType = 'photo';
-    
     stopCameraBackground();
     setUIState("review");
 }
@@ -268,7 +272,7 @@ function startVideoRecording() {
     let mimeType = 'video/webm; codecs=vp9';
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm; codecs=vp8';
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
-    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = ''; 
     
     mediaRecorder = new MediaRecorder(canvasStream, { mimeType: mimeType });
     recordedChunks = [];
@@ -296,7 +300,7 @@ function stopVideoRecording() {
 discardBtn.onclick = () => {
     if (reviewType === 'video' && reviewDataUrl) URL.revokeObjectURL(reviewDataUrl);
     reviewDataUrl = null;
-    startCamera();
+    startCamera(); 
 };
 
 saveBtn.onclick = () => {
@@ -304,7 +308,6 @@ saveBtn.onclick = () => {
     anchor.download = `VisionDetect_${Date.now()}.${reviewType === 'video' ? 'webm' : 'png'}`;
     anchor.href = reviewDataUrl;
     anchor.click();
-    
     discardBtn.click(); 
 };
 
@@ -336,7 +339,13 @@ function stopCameraBackground() {
     video.srcObject = null;
 }
 
+function turnOffCamera() {
+    stopCameraBackground();
+    setUIState("ready");
+}
+
 startBtn.onclick = startCamera;
+stopBtn.onclick = turnOffCamera;
 
 switchBtn.onclick = async () => {
     facingMode = facingMode === "environment" ? "user" : "environment";
@@ -358,7 +367,7 @@ imageUpload.onchange = async (e) => {
             const rawDetections = await model.detect(staticDisplay);
             activeDetectionsArray = rawDetections.filter(p => p.score >= currentThreshold);
             
-            appState = "streaming";
+            appState = "streaming"; 
             executeRenderTick();
             cancelAnimationFrame(renderFrameId); 
             writeTelemetryLists(activeDetectionsArray);
