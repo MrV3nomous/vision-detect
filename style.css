@@ -18,6 +18,7 @@ body {
     font-family: var(--font-ui); font-size: 14px;
     line-height: 1.5; overflow: hidden; 
     height: 100dvh; letter-spacing: -0.3px;
+    user-select: none;
 }
 
 .app-container, .main-layout { width: 100vw; height: 100dvh; display: flex; }
@@ -31,9 +32,9 @@ body {
     position: relative; width: 100%; height: 100%;
     display: flex; align-items: center; justify-content: center;
 }
-video, img, canvas { position: absolute; width: 100%; height: 100%; object-fit: contain; }
-video, img { z-index: 1; }
-canvas { z-index: 2; pointer-events: none; }
+
+canvas { position: absolute; width: 100%; height: 100%; object-fit: contain; z-index: 2; pointer-events: none; }
+.review-media { position: absolute; width: 100%; height: 100%; object-fit: contain; z-index: 5; }
 
 .app-header {
     position: absolute; top: max(15px, env(safe-area-inset-top)); left: 50%;
@@ -81,28 +82,44 @@ canvas { z-index: 2; pointer-events: none; }
 }
 .slider-section { display: none; } 
 .action-dock { 
-    display: flex; align-items: center; gap: 20px; 
+    display: flex; align-items: center; justify-content: center; gap: 20px; 
     background: var(--glass-bg); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
     padding: 10px 20px; border-radius: 40px; border: 1px solid var(--glass-border);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5); min-width: 200px;
 }
 
 .btn { display: flex; align-items: center; justify-content: center; border: none; border-radius: 50%; cursor: pointer; transition: transform 0.2s ease; color: #fff; }
 .btn:active { transform: scale(0.92); }
 .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-.btn-primary, .btn-danger { width: 60px; height: 60px; background: #fff; color: #000; box-shadow: 0 0 0 3px rgba(255,255,255,0.2); }
-.btn-primary .material-symbols-outlined, .btn-danger .material-symbols-outlined { font-size: 30px; font-variation-settings: 'FILL' 1; }
-.btn-danger { background: var(--danger); color: #fff; box-shadow: 0 0 0 3px rgba(255,69,58,0.2); }
+.btn-primary { width: 60px; height: 60px; background: #fff; color: #000; box-shadow: 0 0 0 3px rgba(255,255,255,0.2); }
+.btn-primary .material-symbols-outlined { font-size: 30px; font-variation-settings: 'FILL' 1; }
+.btn-danger { background: var(--danger); }
+.btn-success { background: var(--success); }
 
-.btn-icon { width: 40px; height: 40px; background: rgba(255,255,255,0.15); }
-.btn-icon .material-symbols-outlined { font-size: 20px; }
+.btn-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.15); }
+.btn-icon .material-symbols-outlined { font-size: 22px; }
+
+.shutter-wrapper {
+    width: 66px; height: 66px; border-radius: 50%;
+    border: 3px solid #fff; display: flex; align-items: center; justify-content: center;
+    padding: 3px; cursor: pointer;
+}
+.shutter-btn {
+    width: 100%; height: 100%; border-radius: 50%; background: #fff;
+    border: none; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+.shutter-btn.recording {
+    border-radius: 8px;
+    transform: scale(0.5); background: var(--danger);
+}
+
 .file-upload-wrapper { position: relative; }
 .file-upload-wrapper input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; }
 
 @media (min-width: 900px) {
     .app-header { left: 24px; transform: none; top: 24px; padding: 10px 20px; }
-    
     .ui-layer { display: flex; justify-content: flex-end; position: relative; width: 100%; height: 100%; pointer-events: none; }
     
     .telemetry-panel { 
@@ -124,5 +141,5 @@ canvas { z-index: 2; pointer-events: none; }
     .slider-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
     input[type="range"] { width: 100%; accent-color: var(--accent); }
 
-    .action-dock { background: transparent; border: none; box-shadow: none; padding: 0; border-radius: 0; gap: 16px; justify-content: space-between; width: 100%; }
+    .action-dock { background: transparent; border: none; box-shadow: none; padding: 0; border-radius: 0; gap: 16px; justify-content: center; width: 100%; }
 }

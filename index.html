@@ -23,7 +23,11 @@
                 <div class="vision-frame" id="visionFrame">
                     <video id="video" autoplay muted playsinline class="hidden"></video>
                     <img id="staticDisplay" class="hidden" alt="Analysis Target">
+                    
                     <canvas id="canvas"></canvas>
+
+                    <video id="reviewVideo" class="hidden review-media" autoplay loop muted playsinline></video>
+                    <img id="reviewImage" class="hidden review-media" alt="Captured Frame">
                 </div>
             </main>
 
@@ -54,7 +58,8 @@
                     </div>
 
                     <div class="action-dock" id="actionGrid">
-                        <div class="file-upload-wrapper hidden secondary-action" id="uploadWrapper">
+                        
+                        <div class="file-upload-wrapper secondary-action hidden" id="uploadWrapper">
                             <label for="imageUpload" class="btn btn-icon">
                                 <span class="material-symbols-outlined">photo_library</span>
                             </label>
@@ -65,24 +70,24 @@
                             <span class="material-symbols-outlined">cameraswitch</span>
                         </button>
 
-                        <button id="startCamera" class="btn btn-primary hidden">
-                            <span class="material-symbols-outlined">videocam</span>
-                        </button>
-
-                        <button id="stopCamera" class="btn btn-danger hidden">
-                            <span class="material-symbols-outlined">stop</span>
-                        </button>
-                        
-                        <button id="resetBtn" class="btn btn-danger hidden">
+                        <button id="discardBtn" class="btn btn-icon btn-danger hidden">
                             <span class="material-symbols-outlined">close</span>
                         </button>
 
-                        <button id="downloadBtn" class="btn btn-icon secondary-action hidden">
+                        <button id="startCamera" class="btn btn-primary hidden">
+                            <span class="material-symbols-outlined">power_settings_new</span>
+                        </button>
+
+                        <div class="shutter-wrapper hidden" id="shutterWrapper">
+                            <button id="shutterBtn" class="shutter-btn"></button>
+                        </div>
+
+                        <button id="saveBtn" class="btn btn-icon btn-success hidden">
                             <span class="material-symbols-outlined">download</span>
                         </button>
+
                     </div>
                 </div>
-
             </aside>
         </div>
     </div>
