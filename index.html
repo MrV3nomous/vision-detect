@@ -1,100 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>VisionDetect</title>
-
-<link rel="stylesheet" href="style.css">
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>VisionDetect Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 </head>
-
 <body>
 
-<div class="app">
+    <div class="app-container">
+        <header class="app-header">
+            <div class="logo">VisionDetect</div>
+            <span id="statusIndicator" class="status-tag loading">Initializing</span>
+        </header>
 
-<header class="app-header">
-VISION DETECT
-</header>
+        <div class="main-layout">
+            <main class="viewport-area">
+                <div class="vision-frame" id="visionFrame">
+                    <video id="video" autoplay muted playsinline class="hidden"></video>
+                    <img id="staticDisplay" class="hidden" alt="Analysis Target">
+                    <canvas id="canvas"></canvas>
+                </div>
+            </main>
 
-<div class="layout">
+            <aside class="ui-layer">
+                
+                <div class="telemetry-panel">
+                    <div class="panel-section">
+                        <h3 class="section-title">Live Telemetry</h3>
+                        <div class="telemetry-box">
+                            <ul id="objectList" class="data-list"><li class="placeholder-text">Scanning...</li></ul>
+                        </div>
+                    </div>
+                    <div class="panel-section" id="desktopSummary">
+                        <h3 class="section-title">Summary</h3>
+                        <div class="telemetry-box">
+                            <ul id="objectSummary" class="data-list"><li class="placeholder-text">—</li></ul>
+                        </div>
+                    </div>
+                </div>
 
-<!-- CONTROLS -->
+                <div class="controls-panel">
+                    <div class="slider-section">
+                        <div class="slider-header">
+                            <label for="confidenceSlider">Confidence Threshold</label>
+                            <span id="confidenceValue" class="accent-text">0.50</span>
+                        </div>
+                        <input type="range" id="confidenceSlider" min="0.1" max="0.95" step="0.05" value="0.50">
+                    </div>
 
-<aside class="controls">
+                    <div class="action-dock" id="actionGrid">
+                        <div class="file-upload-wrapper hidden secondary-action" id="uploadWrapper">
+                            <label for="imageUpload" class="btn btn-icon">
+                                <span class="material-symbols-outlined">photo_library</span>
+                            </label>
+                            <input type="file" id="imageUpload" accept="image/*">
+                        </div>
 
-<h3 class="section-title">SYSTEM</h3>
+                        <button id="switchCamera" class="btn btn-icon secondary-action hidden">
+                            <span class="material-symbols-outlined">cameraswitch</span>
+                        </button>
 
-<input type="file" id="imageUpload">
+                        <button id="startCamera" class="btn btn-primary hidden">
+                            <span class="material-symbols-outlined">videocam</span>
+                        </button>
 
-<button id="startCamera">Activate Camera</button>
-<button id="stopCamera">Stop Camera</button>
+                        <button id="stopCamera" class="btn btn-danger hidden">
+                            <span class="material-symbols-outlined">stop</span>
+                        </button>
+                        
+                        <button id="resetBtn" class="btn btn-danger hidden">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
 
-<div class="slider">
+                        <button id="downloadBtn" class="btn btn-icon secondary-action hidden">
+                            <span class="material-symbols-outlined">download</span>
+                        </button>
+                    </div>
+                </div>
 
-<label>Confidence</label>
+            </aside>
+        </div>
+    </div>
 
-<input type="range" id="confidenceSlider" min="0" max="1" step="0.05" value="0.5">
-
-<span id="confidenceValue">0.5</span>
-
-</div>
-
-<button id="downloadBtn">Export Image</button>
-
-</aside>
-
-
-<!-- HERO AREA -->
-
-<main class="vision">
-
-<div class="vision-frame">
-
-<video id="video" autoplay muted playsinline></video>
-
-<canvas id="canvas"></canvas>
-
-<!-- HUD elements -->
-
-<div class="scan-grid"></div>
-
-<div class="scanner-line"></div>
-
-<div class="corner tl"></div>
-<div class="corner tr"></div>
-<div class="corner bl"></div>
-<div class="corner br"></div>
-
-<div id="lockIndicator"></div>
-
-</div>
-
-</main>
-
-
-<!-- ANALYSIS -->
-
-<aside class="analysis">
-
-<h3 class="section-title">DETECTED OBJECTS</h3>
-
-<ul id="objectList"></ul>
-
-<h3 class="section-title">OBJECT COUNT</h3>
-
-<ul id="objectSummary"></ul>
-
-</aside>
-
-</div>
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

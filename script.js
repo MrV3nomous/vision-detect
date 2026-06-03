@@ -1,199 +1,282 @@
 let model = null;
 let running = false;
 let stream = null;
-let usingCamera = true;
+let usingCamera = false;
 let facingMode = "environment";
+let animationFrameId = null;
 
+const visionFrame = document.getElementById("visionFrame");
 const video = document.getElementById("video");
+const staticDisplay = document.getElementById("staticDisplay");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
-const imageUpload = document.getElementById("imageUpload");
 const startBtn = document.getElementById("startCamera");
+const switchBtn = document.getElementById("switchCamera");
 const stopBtn = document.getElementById("stopCamera");
-const turnBtn = document.createElement("button");
 const downloadBtn = document.getElementById("downloadBtn");
-turnBtn.textContent = "Turn Camera";
-startBtn.parentNode.insertBefore(turnBtn, stopBtn.nextSibling);
-
+const resetBtn = document.getElementById("resetBtn");
+const imageUpload = document.getElementById("imageUpload");
+const uploadWrapper = document.getElementById("uploadWrapper");
+const statusIndicator = document.getElementById("statusIndicator");
 const confidenceSlider = document.getElementById("confidenceSlider");
 const confidenceVal = document.getElementById("confidenceValue");
 const objectList = document.getElementById("objectList");
 const objectSummary = document.getElementById("objectSummary");
 
+confidenceSlider.oninput = () => { confidenceVal.textContent = parseFloat(confidenceSlider.value).toFixed(2); };
 
-confidenceVal.textContent = confidenceSlider.value;
-confidenceSlider.oninput = () => { confidenceVal.textContent = confidenceSlider.value; };
+const TRACKING_GRACE_PERIOD = 30; 
+let activeDetections = new Map(); 
 
+function updateTrackingMemory(currentDetections) {
+    activeDetections.forEach((data, key) => {
+        data.lifespan -= 1;
+        if (data.lifespan <= 0) activeDetections.delete(key); 
+    });
 
-async function loadModel() {
-    console.log("Loading COCO-SSD...");
-    model = await cocoSsd.load();
-    console.log("Model loaded!");
+    currentDetections.forEach(det => {
+        const key = det.class; 
+        if (activeDetections.has(key)) {
+            const existing = activeDetections.get(key);
+            existing.bbox = det.bbox;
+            existing.score = det.score;
+            existing.lifespan = TRACKING_GRACE_PERIOD;
+            existing.stale = false;
+        } else {
+            activeDetections.set(key, { class: det.class, bbox: det.bbox, score: det.score, lifespan: TRACKING_GRACE_PERIOD, stale: false });
+        }
+    });
+
+    activeDetections.forEach((data) => { if (data.lifespan < TRACKING_GRACE_PERIOD - 5) data.stale = true; });
+    return Array.from(activeDetections.values());
 }
 
+function setUIState(state) {
+    startBtn.classList.add("hidden"); switchBtn.classList.add("hidden");
+    stopBtn.classList.add("hidden"); downloadBtn.classList.add("hidden");
+    resetBtn.classList.add("hidden"); uploadWrapper.classList.add("hidden");
 
-async function detectSource(source) {
-    if(!model) return [];
-    try {
-        return await model.detect(source);
-    } catch(err) {
-        console.error("Detection error:", err);
-        return [];
+    switch (state) {
+        case "loading":
+            uploadWrapper.classList.remove("hidden"); imageUpload.disabled = true;
+            break;
+        case "ready":
+            startBtn.classList.remove("hidden"); uploadWrapper.classList.remove("hidden");
+            startBtn.disabled = false; imageUpload.disabled = false;
+            statusIndicator.textContent = "READY"; statusIndicator.className = "status-tag ready";
+            activeDetections.clear(); 
+            video.classList.add("hidden"); staticDisplay.classList.add("hidden");
+            break;
+        case "streaming":
+            stopBtn.classList.remove("hidden"); switchBtn.classList.remove("hidden"); downloadBtn.classList.remove("hidden");
+            stopBtn.disabled = false; switchBtn.disabled = false; downloadBtn.disabled = false;
+            statusIndicator.textContent = "LIVE"; statusIndicator.className = "status-tag streaming";
+            video.classList.remove("hidden"); staticDisplay.classList.add("hidden");
+            break;
+        case "static":
+            resetBtn.classList.remove("hidden"); uploadWrapper.classList.remove("hidden"); downloadBtn.classList.remove("hidden");
+            resetBtn.disabled = false; imageUpload.disabled = false; downloadBtn.disabled = false;
+            statusIndicator.textContent = "ANALYSIS COMPLETE"; statusIndicator.className = "status-tag ready";
+            video.classList.add("hidden"); staticDisplay.classList.remove("hidden");
+            break;
     }
 }
 
+async function initEngine() {
+    setUIState("loading");
+    try { model = await cocoSsd.load(); setUIState("ready"); } 
+    catch (err) { statusIndicator.textContent = "ERROR"; alert("Failed to initialize ML engine."); }
+}
 
-function drawDetections(source, detections) {
-    canvas.width = source.videoWidth || source.width;
-    canvas.height = source.videoHeight || source.height;
-    ctx.drawImage(source, 0, 0);
+function getRenderScale(source) {
+    const sWidth = source.videoWidth || source.naturalWidth || source.width; 
+    const sHeight = source.videoHeight || source.naturalHeight || source.height;
+    
+    const frameRect = visionFrame.getBoundingClientRect();
+    const fWidth = frameRect.width; 
+    const fHeight = frameRect.height;
+    
+    const srcRatio = sWidth / sHeight; 
+    const frameRatio = fWidth / fHeight;
 
-    detections.forEach(det => {
-        const [x,y,width,height] = det.bbox;
-        ctx.strokeStyle = "#d4af37";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x,y,width,height);
-        ctx.fillStyle = "#d4af37";
-        ctx.font = "16px Inter";
-        ctx.fillText(det.class + " " + (det.score*100).toFixed(1)+"%", x, y>10?y-5:10);
+    let renderWidth, renderHeight, offsetX, offsetY;
+
+    if (srcRatio > frameRatio) {
+        renderWidth = fWidth; 
+        renderHeight = fWidth / srcRatio;
+        offsetX = 0; 
+        offsetY = (fHeight - renderHeight) / 2;
+    } else {
+        renderHeight = fHeight; 
+        renderWidth = fHeight * srcRatio;
+        offsetX = (fWidth - renderWidth) / 2; 
+        offsetY = 0;
+    }
+
+    return { scaleX: renderWidth / sWidth, scaleY: renderHeight / sHeight, offsetX: offsetX, offsetY: offsetY };
+}
+
+function renderTelemetry(source, stabilizedDetections) {
+    const displayRect = visionFrame.getBoundingClientRect();
+    canvas.width = displayRect.width * window.devicePixelRatio;
+    canvas.height = displayRect.height * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    ctx.clearRect(0, 0, displayRect.width, displayRect.height);
+
+    const mapping = getRenderScale(source);
+
+    stabilizedDetections.forEach(p => {
+        if (p.stale && usingCamera) return; 
+
+        const [bboxX, bboxY, bboxW, bboxH] = p.bbox;
+        const x = (bboxX * mapping.scaleX) + mapping.offsetX;
+        const y = (bboxY * mapping.scaleY) + mapping.offsetY;
+        const w = bboxW * mapping.scaleX; 
+        const h = bboxH * mapping.scaleY;
+
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; 
+        ctx.lineWidth = 1.5; ctx.lineJoin = "round";
+        ctx.strokeRect(x, y, w, h);
+
+        const txt = `${p.class.charAt(0).toUpperCase() + p.class.slice(1)} ${(p.score * 100).toFixed(0)}%`;
+        ctx.font = "500 11px -apple-system, BlinkMacSystemFont, 'Inter', sans-serif";
+        const textWidth = ctx.measureText(txt).width;
+        
+        const badgeY = y - 24 > 0 ? y - 24 : y + 8;
+        
+        ctx.fillStyle = "rgba(28, 28, 30, 0.75)";
+        ctx.beginPath();
+        ctx.roundRect(x, badgeY, textWidth + 12, 20, 6);
+        ctx.fill();
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(txt, x + 6, badgeY + 14);
     });
 }
 
-
-function updateList(predictions) {
-    objectList.innerHTML = "";
-    objectSummary.innerHTML = "";
-
-    if(predictions.length === 0) {
-        const li = document.createElement("li");
-        li.textContent = "No objects detected";
-        objectList.appendChild(li);
-
-        const li2 = document.createElement("li");
-        li2.textContent = "—";
-        objectSummary.appendChild(li2);
+function writeTelemetryLists(stabilizedDetections) {
+    if (stabilizedDetections.length === 0) {
+        objectList.innerHTML = '<li class="placeholder-text">No subjects detected</li>';
+        objectSummary.innerHTML = '<li class="placeholder-text">—</li>';
         return;
     }
 
-    const counts = {};
-    predictions.forEach(p => {
-        counts[p.class] = (counts[p.class] || 0) + 1;
+    const sorted = [...stabilizedDetections].sort((a, b) => a.class.localeCompare(b.class));
+    objectList.innerHTML = ""; objectSummary.innerHTML = "";
+    const aggregator = {};
+
+    sorted.forEach(p => {
+        aggregator[p.class] = (aggregator[p.class] || 0) + 1;
         const li = document.createElement("li");
-        li.textContent = `${p.class} (${(p.score*100).toFixed(1)}%)`;
+        if (p.stale) li.classList.add("stale");
+        li.innerHTML = `<span>${p.class.charAt(0).toUpperCase() + p.class.slice(1)}</span> <span style="font-weight:600; color:var(--text-muted)">${(p.score * 100).toFixed(0)}%</span>`;
         objectList.appendChild(li);
     });
 
-    for(const key in counts) {
+    for (const key in aggregator) {
         const li = document.createElement("li");
-        li.textContent = `${key}: ${counts[key]}`;
+        li.innerHTML = `<span>${key.charAt(0).toUpperCase() + key.slice(1)}</span> <span style="background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:10px;">${aggregator[key]}</span>`;
         objectSummary.appendChild(li);
     }
 }
 
-
-async function detectFrame() {
-    if(!running) return;
-    let source = usingCamera ? video : canvas;
-
-    if(usingCamera && video.readyState !== 4){
-        requestAnimationFrame(detectFrame);
-        return;
-    }
-
-    const threshold = parseFloat(confidenceSlider.value);
-    const predictions = await detectSource(source);
-    const filtered = predictions.filter(p => p.score >= threshold);
-    drawDetections(source, filtered);
-    updateList(filtered);
-
-    requestAnimationFrame(detectFrame);
+async function analyticalProcessLoop() {
+    if (!running) return;
+    if (usingCamera && video.readyState !== 4) { animationFrameId = requestAnimationFrame(analyticalProcessLoop); return; }
+    
+    const currentThreshold = parseFloat(confidenceSlider.value);
+    try {
+        const rawDetections = await model.detect(usingCamera ? video : staticDisplay);
+        const filtered = rawDetections.filter(p => p.score >= currentThreshold);
+        const stabilizedDetections = updateTrackingMemory(filtered);
+        
+        renderTelemetry(usingCamera ? video : staticDisplay, stabilizedDetections);
+        writeTelemetryLists(stabilizedDetections);
+    } catch (e) { console.error(e); }
+    animationFrameId = requestAnimationFrame(analyticalProcessLoop);
 }
 
-
 async function startCamera() {
+    if (stream) stopCamera();
+    setUIState("loading");
+
     try {
-        stream = await navigator.mediaDevices.getUserMedia({
-         video: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 }
-          },
-          audio: false
-        });
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false });
         video.srcObject = stream;
+        await new Promise((resolve) => video.onloadedmetadata = resolve);
         await video.play();
-        usingCamera = true;
-        running = true;
-        detectFrame();
-    } catch(err) {
-        console.error("Camera start failed:", err);
-        alert("Cannot access camera: " + err.message);
+
+        usingCamera = true; running = true;
+        activeDetections.clear(); 
+        setUIState("streaming");
+        analyticalProcessLoop();
+    } catch (err) {
+        alert("Camera access denied or unavailable.");
+        setUIState("ready");
     }
 }
 
 function stopCamera() {
-    if(!stream) return;
-    stream.getTracks().forEach(t => t.stop());
-    video.srcObject = null;
-    stream = null;
     running = false;
+    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+    video.srcObject = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setUIState("ready");
+    objectList.innerHTML = '<li class="placeholder-text">Ready</li>';
+    objectSummary.innerHTML = '<li class="placeholder-text">—</li>';
 }
 
-
-
-function downloadAnnotated(canvas) {
-    const link = document.createElement("a");
-    link.download = "vision-detection.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+function resetStaticImage() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    staticDisplay.src = "";
+    setUIState("ready");
+    objectList.innerHTML = '<li class="placeholder-text">Ready</li>';
+    objectSummary.innerHTML = '<li class="placeholder-text">—</li>';
 }
 
-
-
-
-turnBtn.onclick = async () => {
-    facingMode = facingMode === "environment" ? "user" : "environment";
-    if(stream) stopCamera();
-    await startCamera();
+function executeSnapshot() {
+    const anchor = document.createElement("a");
+    anchor.download = `VisionDetect_${Date.now()}.png`;
+    anchor.href = canvas.toDataURL("image/png");
+    anchor.click();
 }
-
-
-imageUpload.onchange = async e => {
-    const file = e.target.files[0];
-    if(!file) return;
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = async () => {
-        usingCamera = false;
-        stopCamera();
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        const threshold = parseFloat(confidenceSlider.value);
-        const predictions = await detectSource(img);
-        const filtered = predictions.filter(p => p.score >= threshold);
-        drawDetections(img, filtered);
-        updateList(filtered);
-
-        imageUpload.value = "";
-    }
-    img.src = URL.createObjectURL(file);
-}
-
-
-
 
 startBtn.onclick = startCamera;
 stopBtn.onclick = stopCamera;
-downloadBtn.onclick = () => downloadAnnotated(canvas);
+resetBtn.onclick = resetStaticImage;
+downloadBtn.onclick = executeSnapshot;
 
+switchBtn.onclick = async () => {
+    facingMode = facingMode === "environment" ? "user" : "environment";
+    await startCamera();
+};
 
+imageUpload.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
+    stopCamera(); setUIState("loading");
+    const localUri = URL.createObjectURL(file);
 
-(async () => {
-    await loadModel();
-})(); 
+    staticDisplay.onload = async () => {
+        usingCamera = false; running = false;
+        const currentThreshold = parseFloat(confidenceSlider.value);
+        
+        try {
+            const rawDetections = await model.detect(staticDisplay);
+            const filtered = rawDetections.filter(p => p.score >= currentThreshold);
+            renderTelemetry(staticDisplay, filtered);
+            writeTelemetryLists(filtered);
+            setUIState("static");
+        } catch (err) {
+            setUIState("ready");
+        }
+        URL.revokeObjectURL(localUri);
+        imageUpload.value = "";
+    };
+    staticDisplay.src = localUri;
+};
+
+initEngine();
