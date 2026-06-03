@@ -1,5 +1,5 @@
 let model = null;
-let appState = "loading"; // loading, ready, streaming, review
+let appState = "loading";
 let stream = null;
 let usingCamera = false;
 let facingMode = "environment";
@@ -35,12 +35,11 @@ const TRACKING_GRACE_PERIOD = 30;
 let activeDetectionsArray = [];
 let detectionMemory = new Map(); 
 
-// --- Shutter Variables ---
 let isRecording = false;
 let holdTimeout;
 let mediaRecorder;
 let recordedChunks = [];
-let reviewType = null; // 'photo' or 'video'
+let reviewType = null;
 let reviewDataUrl = null;
 
 function updateTrackingMemory(currentDetections) {
@@ -93,7 +92,7 @@ function setUIState(newState) {
         case "review":
             discardBtn.classList.remove("hidden"); saveBtn.classList.remove("hidden");
             statusIndicator.textContent = "REVIEW"; statusIndicator.className = "status-tag ready";
-            canvas.style.opacity = "0"; // Hide live canvas, show review media
+            canvas.style.opacity = "0";
             
             if (reviewType === 'video') {
                 reviewVideo.classList.remove("hidden");
@@ -133,9 +132,8 @@ function getRenderScale(source) {
     return { scaleX: renderWidth / sWidth, scaleY: renderHeight / sHeight, offsetX: offsetX, offsetY: offsetY };
 }
 
-// Master Render Pipeline: Flattens Video + HUD onto the Canvas
 function executeRenderTick() {
-    if (appState !== "streaming" && appState !== "ready") return; // Stop drawing during review
+    if (appState !== "streaming" && appState !== "ready") return;
 
     const displayRect = visionFrame.getBoundingClientRect();
     canvas.width = displayRect.width * window.devicePixelRatio;
@@ -152,10 +150,8 @@ function executeRenderTick() {
         const sWidth = source.videoWidth || source.naturalWidth || source.width;
         const sHeight = source.videoHeight || source.naturalHeight || source.height;
 
-        // Draw Source Image/Video base
         ctx.drawImage(source, 0, 0, sWidth, sHeight, mapping.offsetX, mapping.offsetY, sWidth * mapping.scaleX, sHeight * mapping.scaleY);
 
-        // Draw HUD Overlays
         activeDetectionsArray.forEach(p => {
             if (p.stale && usingCamera) return; 
 
@@ -213,7 +209,6 @@ function writeTelemetryLists(stabilizedDetections) {
     }
 }
 
-// Background AI Process
 async function analyticalProcessLoop() {
     if (appState !== "streaming") return;
     if (usingCamera && video.readyState !== 4) { animationFrameId = requestAnimationFrame(analyticalProcessLoop); return; }
@@ -228,13 +223,10 @@ async function analyticalProcessLoop() {
     animationFrameId = requestAnimationFrame(analyticalProcessLoop);
 }
 
-// ==========================================
-// SHUTTER INTERACTION LOGIC (Tap vs Hold)
-// ==========================================
 shutterWrapper.addEventListener('pointerdown', (e) => {
     if(appState !== 'streaming') return;
     shutterWrapper.style.transform = "scale(0.92)";
-    holdTimeout = setTimeout(() => { startVideoRecording(); }, 400); // 400ms hold triggers video
+    holdTimeout = setTimeout(() => { startVideoRecording(); }, 400);
 });
 
 const endShutterInteraction = () => {
@@ -259,9 +251,7 @@ shutterWrapper.addEventListener('pointercancel', () => {
     if (isRecording) stopVideoRecording();
 });
 
-// Snap Photo
 function takePhotoSnapshot() {
-    // Canvas already contains the flattened video + HUD
     reviewDataUrl = canvas.toDataURL("image/png");
     reviewType = 'photo';
     
@@ -269,7 +259,6 @@ function takePhotoSnapshot() {
     setUIState("review");
 }
 
-// Record Video (Baking canvas stream into a file)
 function startVideoRecording() {
     isRecording = true;
     shutterBtn.classList.add("recording");
@@ -279,7 +268,7 @@ function startVideoRecording() {
     let mimeType = 'video/webm; codecs=vp9';
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm; codecs=vp8';
     if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
-    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = ''; // Let browser decide
+    if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
     
     mediaRecorder = new MediaRecorder(canvasStream, { mimeType: mimeType });
     recordedChunks = [];
@@ -304,11 +293,10 @@ function stopVideoRecording() {
     if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
 }
 
-// Handle Review Actions
 discardBtn.onclick = () => {
     if (reviewType === 'video' && reviewDataUrl) URL.revokeObjectURL(reviewDataUrl);
     reviewDataUrl = null;
-    startCamera(); // Go back to live view
+    startCamera();
 };
 
 saveBtn.onclick = () => {
@@ -317,13 +305,9 @@ saveBtn.onclick = () => {
     anchor.href = reviewDataUrl;
     anchor.click();
     
-    // Optional: Return to live camera after saving
     discardBtn.click(); 
 };
 
-// ==========================================
-// CAMERA / SYSTEM LIFECYCLE
-// ==========================================
 async function startCamera() {
     if (stream) stopCameraBackground();
     setUIState("loading");
@@ -337,7 +321,6 @@ async function startCamera() {
         usingCamera = true; 
         setUIState("streaming");
         
-        // Kick off both loops
         executeRenderTick();
         analyticalProcessLoop();
     } catch (err) {
@@ -375,13 +358,11 @@ imageUpload.onchange = async (e) => {
             const rawDetections = await model.detect(staticDisplay);
             activeDetectionsArray = rawDetections.filter(p => p.score >= currentThreshold);
             
-            // Force a single manual render tick to draw the image + boxes to canvas
-            appState = "streaming"; // temporarily bypass safety check
+            appState = "streaming";
             executeRenderTick();
             cancelAnimationFrame(renderFrameId); 
             writeTelemetryLists(activeDetectionsArray);
             
-            // Immediately transition to review mode to allow save/discard
             reviewDataUrl = canvas.toDataURL("image/png");
             reviewType = 'photo';
             setUIState("review");
