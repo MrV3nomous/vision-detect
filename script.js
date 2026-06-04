@@ -28,6 +28,9 @@ const confidenceVal = document.getElementById("confidenceValue");
 const objectList = document.getElementById("objectList");
 const objectSummary = document.getElementById("objectSummary");
 
+const telemetryPanel = document.getElementById("telemetryPanel");
+const sliderSection = document.getElementById("sliderSection");
+
 confidenceSlider.oninput = () => { confidenceVal.textContent = parseFloat(confidenceSlider.value).toFixed(2); };
 
 const TRACKING_GRACE_PERIOD = 30; 
@@ -74,6 +77,8 @@ function setUIState(newState) {
     saveBtn.classList.add("hidden");
     reviewVideo.classList.add("hidden"); 
     reviewImage.classList.add("hidden");
+    telemetryPanel.classList.add("hidden");
+    sliderSection.classList.add("hidden");
     canvas.style.opacity = "1";
 
     switch (appState) {
@@ -85,13 +90,18 @@ function setUIState(newState) {
             shutterWrapper.classList.remove("hidden"); 
             switchBtn.classList.remove("hidden");
             uploadWrapper.classList.remove("hidden");
+            telemetryPanel.classList.remove("hidden");
+            if (window.innerWidth >= 900) sliderSection.classList.remove("hidden");
+            
             statusIndicator.textContent = "LIVE"; 
             statusIndicator.className = "status-tag streaming";
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
             break;
         case "review":
             discardBtn.classList.remove("hidden"); 
             saveBtn.classList.remove("hidden");
+            telemetryPanel.classList.remove("hidden");
+            
             statusIndicator.textContent = "REVIEW"; 
             statusIndicator.className = "status-tag ready";
             canvas.style.opacity = "0"; 
@@ -120,9 +130,9 @@ async function initEngine() {
     } 
     catch (err) { 
         setUIState("error"); 
-        alert("Failed to initialize ML engine."); 
     }
 }
+
 
 function getRenderScale(source) {
     const sWidth = source.videoWidth || source.naturalWidth || source.width || 1; 
@@ -130,19 +140,16 @@ function getRenderScale(source) {
     
     const frameRect = visionFrame.getBoundingClientRect();
     const fWidth = frameRect.width; const fHeight = frameRect.height;
-    const srcRatio = sWidth / sHeight; const frameRatio = fWidth / fHeight;
+    
+    const scale = Math.max(fWidth / sWidth, fHeight / sHeight);
+    
+    const renderWidth = sWidth * scale;
+    const renderHeight = sHeight * scale;
+    
+    const offsetX = (fWidth - renderWidth) / 2;
+    const offsetY = (fHeight - renderHeight) / 2;
 
-    let renderWidth, renderHeight, offsetX, offsetY;
-
-    if (srcRatio > frameRatio) {
-        renderWidth = fWidth; renderHeight = fWidth / srcRatio;
-        offsetX = 0; offsetY = (fHeight - renderHeight) / 2;
-    } else {
-        renderHeight = fHeight; renderWidth = fHeight * srcRatio;
-        offsetX = (fWidth - renderWidth) / 2; offsetY = 0;
-    }
-
-    return { scaleX: renderWidth / sWidth, scaleY: renderHeight / sHeight, offsetX: offsetX, offsetY: offsetY };
+    return { scaleX: scale, scaleY: scale, offsetX: offsetX, offsetY: offsetY };
 }
 
 function executeRenderTick() {
@@ -153,8 +160,7 @@ function executeRenderTick() {
     canvas.height = displayRect.height * window.devicePixelRatio;
     ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, displayRect.width, displayRect.height);
+    ctx.clearRect(0, 0, displayRect.width, displayRect.height);
 
     const source = usingCamera ? video : staticDisplay;
     
@@ -183,7 +189,7 @@ function executeRenderTick() {
             
             const badgeY = y - 24 > 0 ? y - 24 : y + 8;
             
-            ctx.fillStyle = "rgba(28, 28, 30, 0.75)";
+            ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
             ctx.beginPath();
             ctx.roundRect(x, badgeY, textWidth + 12, 20, 6);
             ctx.fill();
@@ -198,7 +204,7 @@ function executeRenderTick() {
 
 function writeTelemetryLists(stabilizedDetections) {
     if (stabilizedDetections.length === 0) {
-        objectList.innerHTML = '<li class="placeholder-text">No subjects detected</li>';
+        objectList.innerHTML = '<li class="placeholder-text">Scanning area...</li>';
         objectSummary.innerHTML = '<li class="placeholder-text">—</li>';
         return;
     }
@@ -211,13 +217,13 @@ function writeTelemetryLists(stabilizedDetections) {
         aggregator[p.class] = (aggregator[p.class] || 0) + 1;
         const li = document.createElement("li");
         if (p.stale) li.classList.add("stale");
-        li.innerHTML = `<span>${p.class.charAt(0).toUpperCase() + p.class.slice(1)}</span> <span style="font-weight:600; color:var(--text-muted)">${(p.score * 100).toFixed(0)}%</span>`;
+        li.innerHTML = `<span>${p.class.charAt(0).toUpperCase() + p.class.slice(1)}</span> <span style="font-weight:600;">${(p.score * 100).toFixed(0)}%</span>`;
         objectList.appendChild(li);
     });
 
     for (const key in aggregator) {
         const li = document.createElement("li");
-        li.innerHTML = `<span>${key.charAt(0).toUpperCase() + key.slice(1)}</span> <span style="background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:10px;">${aggregator[key]}</span>`;
+        li.innerHTML = `<span>${key.charAt(0).toUpperCase() + key.slice(1)}</span> <span style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:10px;">${aggregator[key]}</span>`;
         objectSummary.appendChild(li);
     }
 }
@@ -308,7 +314,7 @@ function stopVideoRecording() {
 discardBtn.onclick = () => {
     if (reviewType === 'video' && reviewDataUrl) URL.revokeObjectURL(reviewDataUrl);
     reviewDataUrl = null;
-    startCamera();
+    startCamera(); 
 };
 
 saveBtn.onclick = () => {
@@ -316,12 +322,11 @@ saveBtn.onclick = () => {
     anchor.download = `VisionDetect_${Date.now()}.${reviewType === 'video' ? 'webm' : 'png'}`;
     anchor.href = reviewDataUrl;
     anchor.click();
-    discardBtn.click();
+    discardBtn.click(); 
 };
 
 async function startCamera() {
     if (stream) stopCameraBackground();
-    setUIState("loading");
 
     try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false });
@@ -357,7 +362,7 @@ imageUpload.onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (stream) stopCameraBackground();
+    if (stream) stopCameraBackground(); 
     
     setUIState("loading");
     const localUri = URL.createObjectURL(file);
@@ -369,7 +374,7 @@ imageUpload.onchange = async (e) => {
             const rawDetections = await model.detect(staticDisplay);
             activeDetectionsArray = rawDetections.filter(p => p.score >= currentThreshold);
             
-            appState = "streaming";
+            appState = "streaming"; 
             executeRenderTick();
             cancelAnimationFrame(renderFrameId); 
             writeTelemetryLists(activeDetectionsArray);
@@ -379,10 +384,10 @@ imageUpload.onchange = async (e) => {
             setUIState("review");
             
         } catch (err) {
-            startCamera();
+            startCamera(); 
         }
         URL.revokeObjectURL(localUri);
-        imageUpload.value = "";
+        imageUpload.value = ""; 
     };
     staticDisplay.src = localUri;
 };

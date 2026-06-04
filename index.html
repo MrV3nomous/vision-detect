@@ -13,7 +13,7 @@
 <body>
 
     <div class="app-container">
-        <header class="app-header">
+        <header class="app-header" id="appHeader">
             <div class="logo">VisionDetect</div>
             <span id="statusIndicator" class="status-tag loading">Initializing</span>
         </header>
@@ -31,25 +31,21 @@
 
             <aside class="ui-layer">
                 
-                <div class="telemetry-panel">
+                <div class="telemetry-panel" id="telemetryPanel">
                     <div class="panel-section">
                         <h3 class="section-title">Live Telemetry</h3>
-                        <div class="telemetry-box">
-                            <ul id="objectList" class="data-list"><li class="placeholder-text">Scanning...</li></ul>
-                        </div>
+                        <ul id="objectList" class="data-list"><li class="placeholder-text">Scanning...</li></ul>
                     </div>
                     <div class="panel-section" id="desktopSummary">
                         <h3 class="section-title">Summary</h3>
-                        <div class="telemetry-box">
-                            <ul id="objectSummary" class="data-list"><li class="placeholder-text">—</li></ul>
-                        </div>
+                        <ul id="objectSummary" class="data-list"><li class="placeholder-text">—</li></ul>
                     </div>
                 </div>
 
                 <div class="controls-panel">
-                    <div class="slider-section">
+                    <div class="slider-section" id="sliderSection">
                         <div class="slider-header">
-                            <label for="confidenceSlider">Confidence Threshold</label>
+                            <label for="confidenceSlider">Threshold</label>
                             <span id="confidenceValue" class="accent-text">0.50</span>
                         </div>
                         <input type="range" id="confidenceSlider" min="0.1" max="0.95" step="0.05" value="0.50">
