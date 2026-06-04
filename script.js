@@ -15,8 +15,6 @@ const ctx = canvas.getContext("2d");
 const reviewVideo = document.getElementById("reviewVideo");
 const reviewImage = document.getElementById("reviewImage");
 
-const startBtn = document.getElementById("startCamera");
-const stopBtn = document.getElementById("stopCamera");
 const switchBtn = document.getElementById("switchCamera");
 const shutterWrapper = document.getElementById("shutterWrapper");
 const shutterBtn = document.getElementById("shutterBtn");
@@ -69,34 +67,33 @@ function updateTrackingMemory(currentDetections) {
 function setUIState(newState) {
     appState = newState;
     
-    startBtn.classList.add("hidden"); switchBtn.classList.add("hidden");
-    shutterWrapper.classList.add("hidden"); uploadWrapper.classList.add("hidden");
-    discardBtn.classList.add("hidden"); saveBtn.classList.add("hidden");
-    stopBtn.classList.add("hidden");
-    reviewVideo.classList.add("hidden"); reviewImage.classList.add("hidden");
+    switchBtn.classList.add("hidden");
+    shutterWrapper.classList.add("hidden"); 
+    uploadWrapper.classList.add("hidden");
+    discardBtn.classList.add("hidden"); 
+    saveBtn.classList.add("hidden");
+    reviewVideo.classList.add("hidden"); 
+    reviewImage.classList.add("hidden");
     canvas.style.opacity = "1";
 
     switch (appState) {
         case "loading":
-            uploadWrapper.classList.remove("hidden"); imageUpload.disabled = true;
-            break;
-        case "ready":
-            startBtn.classList.remove("hidden"); uploadWrapper.classList.remove("hidden");
-            startBtn.disabled = false; imageUpload.disabled = false;
-            statusIndicator.textContent = "READY"; statusIndicator.className = "status-tag ready";
-            activeDetectionsArray = []; detectionMemory.clear(); 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            statusIndicator.textContent = "INITIALIZING"; 
+            statusIndicator.className = "status-tag loading";
             break;
         case "streaming":
             shutterWrapper.classList.remove("hidden"); 
             switchBtn.classList.remove("hidden");
             uploadWrapper.classList.remove("hidden");
-            stopBtn.classList.remove("hidden");
-            statusIndicator.textContent = "LIVE"; statusIndicator.className = "status-tag streaming";
+            statusIndicator.textContent = "LIVE"; 
+            statusIndicator.className = "status-tag streaming";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             break;
         case "review":
-            discardBtn.classList.remove("hidden"); saveBtn.classList.remove("hidden");
-            statusIndicator.textContent = "REVIEW"; statusIndicator.className = "status-tag ready";
+            discardBtn.classList.remove("hidden"); 
+            saveBtn.classList.remove("hidden");
+            statusIndicator.textContent = "REVIEW"; 
+            statusIndicator.className = "status-tag ready";
             canvas.style.opacity = "0"; 
             
             if (reviewType === 'video') {
@@ -107,13 +104,24 @@ function setUIState(newState) {
                 reviewImage.src = reviewDataUrl;
             }
             break;
+        case "error":
+            uploadWrapper.classList.remove("hidden");
+            statusIndicator.textContent = "CAMERA ERROR"; 
+            statusIndicator.className = "status-tag loading";
+            break;
     }
 }
 
 async function initEngine() {
     setUIState("loading");
-    try { model = await cocoSsd.load(); setUIState("ready"); } 
-    catch (err) { statusIndicator.textContent = "ERROR"; alert("Failed to initialize ML engine."); }
+    try { 
+        model = await cocoSsd.load(); 
+        await startCamera(); 
+    } 
+    catch (err) { 
+        setUIState("error"); 
+        alert("Failed to initialize ML engine."); 
+    }
 }
 
 function getRenderScale(source) {
@@ -138,7 +146,7 @@ function getRenderScale(source) {
 }
 
 function executeRenderTick() {
-    if (appState !== "streaming" && appState !== "ready") return; 
+    if (appState !== "streaming") return; 
 
     const displayRect = visionFrame.getBoundingClientRect();
     canvas.width = displayRect.width * window.devicePixelRatio;
@@ -300,7 +308,7 @@ function stopVideoRecording() {
 discardBtn.onclick = () => {
     if (reviewType === 'video' && reviewDataUrl) URL.revokeObjectURL(reviewDataUrl);
     reviewDataUrl = null;
-    startCamera(); 
+    startCamera();
 };
 
 saveBtn.onclick = () => {
@@ -308,7 +316,7 @@ saveBtn.onclick = () => {
     anchor.download = `VisionDetect_${Date.now()}.${reviewType === 'video' ? 'webm' : 'png'}`;
     anchor.href = reviewDataUrl;
     anchor.click();
-    discardBtn.click(); 
+    discardBtn.click();
 };
 
 async function startCamera() {
@@ -322,13 +330,14 @@ async function startCamera() {
         await video.play();
 
         usingCamera = true; 
+        activeDetectionsArray = [];
+        detectionMemory.clear();
         setUIState("streaming");
         
         executeRenderTick();
         analyticalProcessLoop();
     } catch (err) {
-        alert("Camera access denied or unavailable.");
-        setUIState("ready");
+        setUIState("error");
     }
 }
 
@@ -338,14 +347,6 @@ function stopCameraBackground() {
     if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
     video.srcObject = null;
 }
-
-function turnOffCamera() {
-    stopCameraBackground();
-    setUIState("ready");
-}
-
-startBtn.onclick = startCamera;
-stopBtn.onclick = turnOffCamera;
 
 switchBtn.onclick = async () => {
     facingMode = facingMode === "environment" ? "user" : "environment";
@@ -357,6 +358,7 @@ imageUpload.onchange = async (e) => {
     if (!file) return;
 
     if (stream) stopCameraBackground();
+    
     setUIState("loading");
     const localUri = URL.createObjectURL(file);
 
@@ -367,7 +369,7 @@ imageUpload.onchange = async (e) => {
             const rawDetections = await model.detect(staticDisplay);
             activeDetectionsArray = rawDetections.filter(p => p.score >= currentThreshold);
             
-            appState = "streaming"; 
+            appState = "streaming";
             executeRenderTick();
             cancelAnimationFrame(renderFrameId); 
             writeTelemetryLists(activeDetectionsArray);
@@ -377,7 +379,7 @@ imageUpload.onchange = async (e) => {
             setUIState("review");
             
         } catch (err) {
-            setUIState("ready");
+            startCamera();
         }
         URL.revokeObjectURL(localUri);
         imageUpload.value = "";
