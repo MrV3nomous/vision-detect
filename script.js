@@ -343,6 +343,15 @@ async function startCamera() {
     if (stream) stopCameraBackground();
 
     try {
+        const constraints = {
+            video: {
+                facingMode: facingMode,
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: false
+        };
+        
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode }, audio: false });
         video.srcObject = stream;
         await new Promise((resolve) => video.onloadedmetadata = resolve);
