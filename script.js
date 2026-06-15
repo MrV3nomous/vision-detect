@@ -70,14 +70,13 @@ function updateTrackingMemory(currentDetections) {
 function setUIState(newState) {
     appState = newState;
     
-    // Manage full-screen loading overlay
     const loadingOverlay = document.getElementById("loadingOverlay");
     if (loadingOverlay) {
         if (appState === "loading") {
             loadingOverlay.classList.remove("fade-out");
             const statusText = loadingOverlay.querySelector(".loading-status");
             if (statusText) {
-                statusText.textContent = usingCamera ? "Waking up Neural Engine..." : "Processing Image...";
+                statusText.textContent = (model === null) ? "Waking up Neural Engine..." : "Processing Image...";
             }
         } else {
             loadingOverlay.classList.add("fade-out");
