@@ -146,7 +146,6 @@ async function initEngine() {
     }
 }
 
-
 function getRenderScale(source) {
     const sWidth = source.videoWidth || source.naturalWidth || source.width || 1; 
     const sHeight = source.videoHeight || source.naturalHeight || source.height || 1;
@@ -154,7 +153,9 @@ function getRenderScale(source) {
     const frameRect = visionFrame.getBoundingClientRect();
     const fWidth = frameRect.width; const fHeight = frameRect.height;
     
-    const scale = Math.max(fWidth / sWidth, fHeight / sHeight);
+    const scale = usingCamera 
+        ? Math.max(fWidth / sWidth, fHeight / sHeight) 
+        : Math.min(fWidth / sWidth, fHeight / sHeight);
     
     const renderWidth = sWidth * scale;
     const renderHeight = sHeight * scale;
