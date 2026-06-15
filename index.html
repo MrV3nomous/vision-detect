@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <title>VisionDetect Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
@@ -11,6 +12,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 </head>
 <body>
+
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loader-core">
+            <div class="scanner-ring"></div>
+            <div class="brand-text">VisionDetect Pro</div>
+            <div class="loading-status">Waking up Neural Engine...</div>
+        </div>
+    </div>
 
     <div class="app-container">
         <header class="app-header" id="appHeader">
